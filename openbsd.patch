@@ -1,0 +1,67 @@
+diff --git cn30xxgmx.c cn30xxgmx.c
+index 7e4cf59e2c9..1a7f57cb122 100644
+--- cn30xxgmx.c
++++ cn30xxgmx.c
+@@ -1340,9 +1340,18 @@ cn30xxgmx_rgmii_timing(struct cn30xxgmx_port_softc *sc)
+ 		clk_rx_setting = 24;
+ 		break;
+ 	case BOARD_TYPE_UBIQUITI_E100:
+-	case BOARD_TYPE_UBIQUITI_E120:
+ 		clk_tx_setting = 16;
+-		clk_rx_setting = 0;
++                clk_rx_setting = 0;
++		break;
++	case BOARD_TYPE_UBIQUITI_E120:
++		if(octeon_boot_info->board_rev_major == 2) {
++			/* Netgear UTM25 */
++			clk_tx_setting = 9;
++			clk_rx_setting = 9;
++		} else {
++			clk_tx_setting = 16;
++			clk_rx_setting = 0;
++		}
+ 		break;
+ 	}
+ 
+diff --git cn30xxsmi.c cn30xxsmi.c
+index c4b212a68e7..feb59975276 100644
+--- cn30xxsmi.c
++++ cn30xxsmi.c
+@@ -155,7 +155,10 @@ cn30xxsmi_get_phy(int phandle, int port, struct cn30xxsmi_softc **psmi,
+ 	static const int cam0100_phys[] = {
+ 		0x02, 0x03, 0x22
+ 	};
+-
++	/* PHY addresses for Netgear UTM25 */
++	static const int nutm25_phys[] = {
++		0x00, 0x04, 0x09
++	};
+ 	struct cn30xxsmi_softc *smi;
+ 	int parent, phynode;
+ 	int reg;
+@@ -184,7 +187,10 @@ cn30xxsmi_get_phy(int phandle, int port, struct cn30xxsmi_softc **psmi,
+ 		case BOARD_TYPE_UBIQUITI_E120:
+ 			if (port > 2)
+ 				return ENOENT;
+-			reg = 7 - port;
++			if (octeon_boot_info->board_rev_major == 2)
++				reg = nutm25_phys[port];
++			else
++				reg = 7 - port;
+ 			break;
+ 		case BOARD_TYPE_CN3010_EVB_HS5:
+ 			if (port >= nitems(cam0100_phys))
+diff --git octrtc.c octrtc.c
+index 129f83726c3..655309488ed 100644
+--- octrtc.c
++++ octrtc.c
+@@ -99,6 +99,9 @@ octrtc_match(struct device *parent, void *match, void *aux)
+ 
+ 	if (strcmp(maa->maa_name, cf->cf_driver->cd_name) != 0)
+ 		return 0;
++	if ((octeon_boot_info->board_type == BOARD_TYPE_UBIQUITI_E120) && 
++		(octeon_boot_info->board_rev_major == 2))
++		return 1; // Netgear UTM25
+ 	for (i = 0; i < nitems(no_rtc_boards); i++)
+ 		if (octeon_boot_info->board_type == no_rtc_boards[i])
+ 			return 0;
