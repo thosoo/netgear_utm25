@@ -1,2 +1,3 @@
-# netgear_utm25
+# Netgear UTM25
 Findings about the Netgear UTM25
+
